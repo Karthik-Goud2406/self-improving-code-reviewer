@@ -1,89 +1,200 @@
+Self-Improving Agentic Code Review System
 
-# Agentic Code Review System
+A lean, workflow-driven agentic code review system that assists human reviewers by analyzing pull requests, surfacing potential risks, and learning from past feedback over time.
 
-An autonomous, multi-agent system designed to assist with code reviews by analyzing pull requests, suggesting improvements, and learning from past feedback.
+This project is intentionally focused on agent orchestration, memory boundaries, and decision-making, not prompt tricks or UI polish.
 
-The focus of this project is **agent orchestration, memory, and decision boundaries**, not prompt tricks.
+Problem
 
----
+Manual code reviews are:
 
-## Problem Statement
+time-consuming
 
-Manual code reviews are time-consuming and inconsistent.  
-Single-agent LLM solutions struggle with long context and complex reasoning.
+cognitively expensive
 
-This system uses **agent decomposition** to improve reliability.
+inconsistent across reviewers
 
----
+Single-agent LLM solutions often fail because:
 
-## System Architecture
+long diffs exceed context limits
 
-### Agent Roles
+reasoning degrades with mixed concerns
 
-1. **Manager Agent**
-   - Analyzes pull request context
-   - Decomposes review tasks
-   - Assigns work to worker agents
+failures are hard to debug or trust
 
-2. **Worker Agents**
-   - Review specific files or concerns
-   - Generate focused suggestions
-   - Return structured feedback
+The result is either overconfident AI suggestions or low-signal noise.
 
-3. **Memory Layer**
-   - Stores historical feedback
-   - Enables iterative improvement over time
+Goal
 
----
+Design an AI system that:
 
-## Why Multi-Agent?
+augments human reviewers instead of replacing them
 
-- Reduces long-context failures
-- Improves reasoning quality
-- Allows isolation of errors
-- Easier to debug and extend
+highlights non-obvious risks, not stylistic changes
 
----
+stays reliable under failure
 
-## Tech Stack
+improves gradually through feedback
 
-- **LLM:** Llama 3  
-- **Orchestration:** LangGraph  
-- **Memory:** Pinecone  
-- **Integration:** GitHub API  
-- **Backend:** Python
+The system should never block a developer workflow and should degrade gracefully when AI services are unavailable.
 
----
+High-Level Architecture
+Pull Request Diff
+        ↓
+Context Builder
+        ↓
+Manager Agent
+   (task decomposition)
+        ↓
+Worker Agents
+   (focused reviews)
+        ↓
+Memory Layer (optional)
+        ↓
+Guarded Review Output
+        ↓
+Human Reviewer
 
-## Key Design Decisions
+Agent Roles
+Manager Agent
 
-- **Manager–Worker pattern**  
-  Prevents a single agent from handling too much context.
+Analyzes pull request context
 
-- **Structured agent outputs**  
-  Makes suggestions easier to validate and apply.
+Identifies review dimensions (e.g. async logic, data access, error handling)
 
-- **Long-term memory**  
-  Improves consistency across multiple reviews.
+Decomposes work into focused subtasks
 
----
+Assigns tasks to worker agents
 
-## Failure Scenarios Handled
+Why: prevents a single agent from handling too much context and reasoning poorly.
 
-- Ambiguous tasks → manager re-assigns work
-- Repeated low-quality suggestions → feedback stored
-- API failures → graceful fallback
+Worker Agents
 
----
+Review a narrow concern or file
 
-## Limitations & Future Work
+Generate structured, cautious suggestions
 
-- No human-in-the-loop approval yet
-- Evaluation metrics are basic
-- Security hardening required for enterprise use
+Return feedback without approval authority
 
----
+Why: smaller context → better reasoning → easier validation.
 
-## Why This Project Exists
+Memory Layer
 
-To demonstrate **agent orchestration, reasoning boundaries, and memory management** in applied GenAI systems.
+Stores past review feedback
+
+Enables consistency across multiple reviews
+
+Used as advisory context, not ground truth
+
+Important: memory is optional and isolated.
+If embeddings or external APIs fail, the system still works.
+
+Design Principles
+1. Human-in-the-Loop by Design
+
+The system:
+
+does not approve code
+
+does not rewrite logic
+
+only surfaces potential risks or questions
+
+Final judgment always belongs to a human.
+
+2. Failure-Tolerant AI
+
+External AI dependencies are treated as unreliable by default.
+
+If:
+
+LLM quota is exceeded
+
+embeddings are unavailable
+
+APIs fail
+
+→ the system falls back to safe, deterministic signals instead of crashing.
+
+3. Small, Explainable Surface Area
+
+This MVP intentionally avoids:
+
+UI dashboards
+
+webhooks
+
+auto-merge logic
+
+heavy orchestration infra
+
+The goal is clarity of reasoning, not feature breadth.
+
+Tech Stack
+
+Language: Python
+
+LLM: Llama 3 / OpenAI (pluggable)
+
+Agent Orchestration: LangGraph
+
+Memory: Chroma / Pinecone (optional)
+
+Integration: GitHub API (mocked in MVP)
+
+Tooling choices are secondary to system boundaries and tradeoffs.
+
+Running the MVP
+python app/main.py
+
+
+This runs an end-to-end workflow using a mocked PR diff and prints a guarded review suggestion to the console.
+
+Example Output
+Potential risk detected: async behavior introduced.
+Consider verifying concurrency safety and error handling.
+
+
+This output is intentionally:
+
+concise
+
+non-authoritative
+
+risk-focused
+
+Failure Scenarios Handled
+
+Ambiguous tasks → manager narrows scope
+
+Repeated low-quality suggestions → feedback stored
+
+LLM / embedding failures → graceful fallback
+
+No memory available → stateless review still runs
+
+Limitations
+
+No real-time GitHub webhook yet
+
+No human approval UI
+
+Evaluation metrics are minimal
+
+Security hardening not production-ready
+
+These are conscious tradeoffs to keep the system small and explainable.
+
+Why This Project Exists
+
+To demonstrate:
+
+agent orchestration under uncertainty
+
+decision boundaries for AI systems
+
+failure-tolerant GenAI design
+
+how AI can augment human judgment, not replace it
+
+This mirrors how I would approach building AI-native systems in a real production environment.
